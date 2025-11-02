@@ -25,13 +25,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.indivassignment5q3.ui.theme.IndivAssignment5Q3Theme
 
-// 1. Update sealed class with a route that takes an argument
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Categories : Screen("categories")
     object LocationsList : Screen("locations/{category}") {
-        // Helper function to create the route with the actual category
         fun createRoute(category: String) = "locations/$category"
+    }
+    object LocationDetail : Screen("locations/{category}/{locationId}") {
+        fun createRoute(category: String, locationId: Int) = "locations/$category/$locationId"
     }
 }
 
@@ -49,14 +50,23 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Categories.route) {
                             CategoriesScreen(navController = navController)
                         }
-                        // 2. Add the new destination to the NavHost
                         composable(
                             route = Screen.LocationsList.route,
                             arguments = listOf(navArgument("category") { type = NavType.StringType })
                         ) { backStackEntry ->
-                            // Retrieve the argument from the back stack
                             val category = backStackEntry.arguments?.getString("category") ?: ""
                             LocationsListScreen(navController = navController, category = category)
+                        }
+                        composable(
+                            route = Screen.LocationDetail.route,
+                            arguments = listOf(
+                                navArgument("category") { type = NavType.StringType },
+                                navArgument("locationId") { type = NavType.IntType }
+                            )
+                        ) { backStackEntry ->
+                            val category = backStackEntry.arguments?.getString("category") ?: ""
+                            val locationId = backStackEntry.arguments?.getInt("locationId") ?: 0
+                            LocationDetailScreen(category = category, locationId = locationId)
                         }
                     }
                 }
@@ -89,7 +99,6 @@ fun CategoriesScreen(navController: NavController) {
     ) {
         Text("Categories")
         Spacer(Modifier.height(16.dp))
-        // 3. Update buttons to pass the category argument
         Button(onClick = { navController.navigate(Screen.LocationsList.createRoute("Museums")) }) {
             Text("Museums")
         }
@@ -100,7 +109,6 @@ fun CategoriesScreen(navController: NavController) {
     }
 }
 
-// 4. Create the new LocationsListScreen composable
 @Composable
 fun LocationsListScreen(navController: NavController, category: String) {
     Column(
@@ -110,11 +118,25 @@ fun LocationsListScreen(navController: NavController, category: String) {
     ) {
         Text("Category: $category")
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { /* Navigation to detail screen will be added later */ }) {
+        Button(onClick = { navController.navigate(Screen.LocationDetail.createRoute(category, 101)) }) {
             Text("View Location Details (ID: 101)")
         }
     }
 }
+
+@Composable
+fun LocationDetailScreen(category: String, locationId: Int) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Details for $category")
+        Spacer(Modifier.height(8.dp))
+        Text("Location ID: $locationId")
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable

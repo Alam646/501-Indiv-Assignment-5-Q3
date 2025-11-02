@@ -18,15 +18,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.indivassignment5q3.ui.theme.IndivAssignment5Q3Theme
 
-// 1. Define routes for the screens in a sealed class for type safety
+// 1. Update sealed class with a route that takes an argument
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Categories : Screen("categories")
+    object LocationsList : Screen("locations/{category}") {
+        // Helper function to create the route with the actual category
+        fun createRoute(category: String) = "locations/$category"
+    }
 }
 
 class MainActivity : ComponentActivity() {
@@ -35,7 +41,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             IndivAssignment5Q3Theme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    // 2. Set up the NavController and NavHost
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = Screen.Home.route) {
                         composable(Screen.Home.route) {
@@ -43,6 +48,15 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.Categories.route) {
                             CategoriesScreen(navController = navController)
+                        }
+                        // 2. Add the new destination to the NavHost
+                        composable(
+                            route = Screen.LocationsList.route,
+                            arguments = listOf(navArgument("category") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            // Retrieve the argument from the back stack
+                            val category = backStackEntry.arguments?.getString("category") ?: ""
+                            LocationsListScreen(navController = navController, category = category)
                         }
                     }
                 }
@@ -52,7 +66,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun HomeScreen(navController: NavController) { // Pass NavController
+fun HomeScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -60,7 +74,6 @@ fun HomeScreen(navController: NavController) { // Pass NavController
     ) {
         Text("Welcome to Boston!")
         Spacer(Modifier.height(16.dp))
-        // 3. Add the navigation action to the button
         Button(onClick = { navController.navigate(Screen.Categories.route) }) {
             Text("Explore Categories")
         }
@@ -68,7 +81,7 @@ fun HomeScreen(navController: NavController) { // Pass NavController
 }
 
 @Composable
-fun CategoriesScreen(navController: NavController) { // Pass NavController
+fun CategoriesScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -76,12 +89,29 @@ fun CategoriesScreen(navController: NavController) { // Pass NavController
     ) {
         Text("Categories")
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { /* Navigation will be added later */ }) {
+        // 3. Update buttons to pass the category argument
+        Button(onClick = { navController.navigate(Screen.LocationsList.createRoute("Museums")) }) {
             Text("Museums")
         }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { /* Navigation will be added later */ }) {
+        Button(onClick = { navController.navigate(Screen.LocationsList.createRoute("Parks")) }) {
             Text("Parks")
+        }
+    }
+}
+
+// 4. Create the new LocationsListScreen composable
+@Composable
+fun LocationsListScreen(navController: NavController, category: String) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Category: $category")
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = { /* Navigation to detail screen will be added later */ }) {
+            Text("View Location Details (ID: 101)")
         }
     }
 }
@@ -90,8 +120,6 @@ fun CategoriesScreen(navController: NavController) { // Pass NavController
 @Composable
 fun DefaultPreview() {
     IndivAssignment5Q3Theme {
-        // Preview won't have real navigation, so we pass a dummy NavController
-        // A better approach for previews is to create a fake NavController, but this works for now.
         HomeScreen(navController = rememberNavController())
     }
 }

@@ -144,7 +144,11 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
         ) { backStackEntry ->
             val category = backStackEntry?.arguments?.getString("category") ?: ""
             val locationId = backStackEntry?.arguments?.getInt("locationId") ?: 0
-            LocationDetailScreen(category = category, locationId = locationId)
+            LocationDetailScreen(
+                navController = navController, // Pass the NavController
+                category = category,
+                locationId = locationId
+            )
         }
     }
 }
@@ -199,7 +203,11 @@ fun LocationsListScreen(navController: NavController, category: String) {
 }
 
 @Composable
-fun LocationDetailScreen(category: String, locationId: Int) {
+fun LocationDetailScreen(
+    navController: NavController, // Receive the NavController
+    category: String,
+    locationId: Int
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -208,6 +216,19 @@ fun LocationDetailScreen(category: String, locationId: Int) {
         Text("Details for $category")
         Spacer(Modifier.height(8.dp))
         Text("Location ID: $locationId")
+        Spacer(Modifier.height(16.dp))
+
+        // This button clears the entire back stack and returns to the Home screen.
+        Button(onClick = {
+            navController.navigate(Screen.Home.route) {
+                // This is the key action. It pops all screens up to the Home destination.
+                popUpTo(Screen.Home.route) {
+                    inclusive = true // This also removes the Home screen itself, creating a fresh start.
+                }
+            }
+        }) {
+            Text("Go Home")
+        }
     }
 }
 

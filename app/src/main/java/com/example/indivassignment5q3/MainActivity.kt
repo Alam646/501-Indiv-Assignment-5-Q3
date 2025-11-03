@@ -3,47 +3,23 @@ package com.example.indivassignment5q3
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.example.indivassignment5q3.ui.theme.IndivAssignment5Q3Theme
-
-sealed class Screen(val route: String) {
-    object Home : Screen("home")
-    object Categories : Screen("categories")
-    object LocationsList : Screen("locations/{category}") {
-        fun createRoute(category: String) = "locations/$category"
-    }
-    object LocationDetail : Screen("locations/{category}/{locationId}") {
-        fun createRoute(category: String, locationId: Int) = "locations/$category/$locationId"
-    }
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,10 +53,15 @@ fun BostonTopAppBar(
                     )
                 }
             }
-        }
+        },
+        // This makes the TopAppBar use the primary color from our theme for a branded look.
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+        )
     )
 }
-
 
 @Composable
 fun BostonApp() {
@@ -92,151 +73,33 @@ fun BostonApp() {
     val currentScreenTitle = when (backStackEntry?.destination?.route) {
         Screen.Home.route -> "Explore Boston"
         Screen.Categories.route -> "Categories"
-        Screen.LocationsList.route -> backStackEntry?.arguments?.getString("category") ?: "Locations"
+        Screen.LocationsList.route -> {
+            val category = backStackEntry?.arguments?.getString("category")
+            "All ${category ?: "Locations"}"
+        }
         Screen.LocationDetail.route -> "Location Details"
         else -> "Boston Tour"
     }
+
+    // This logic determines if we are at the Home screen because the app just started
+    // or because the user completed a full loop and cleared the stack.
+    val isHomeAfterFullCycle = backStackEntry?.destination?.route == Screen.Home.route &&
+            navController.previousBackStackEntry == null
 
     Scaffold(
         topBar = {
             BostonTopAppBar(
                 currentScreenTitle = currentScreenTitle,
-                // The back button should be shown if there's a previous entry in the back stack.
-                canNavigateBack = navController.previousBackStackEntry != null,
-                // Pass the navigateUp action from the NavController.
+                // The back button is disabled if there's no screen to go back to.
+                // This is true at the start of the app and after returning home from the detail screen.
+                canNavigateBack = !isHomeAfterFullCycle,
                 navigateUp = { navController.navigateUp() }
             )
         }
     ) { innerPadding ->
-        NavGraph(
+        BostonNavGraph(
             navController = navController,
             modifier = Modifier.padding(innerPadding)
         )
-    }
-}
-
-@Composable
-fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Home.route,
-        modifier = modifier
-    ) {
-        composable(Screen.Home.route) {
-            HomeScreen(navController = navController)
-        }
-        composable(Screen.Categories.route) {
-            CategoriesScreen(navController = navController)
-        }
-        composable(
-            route = Screen.LocationsList.route,
-            arguments = listOf(navArgument("category") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val category = backStackEntry?.arguments?.getString("category") ?: ""
-            LocationsListScreen(navController = navController, category = category)
-        }
-        composable(
-            route = Screen.LocationDetail.route,
-            arguments = listOf(
-                navArgument("category") { type = NavType.StringType },
-                navArgument("locationId") { type = NavType.IntType }
-            )
-        ) { backStackEntry ->
-            val category = backStackEntry?.arguments?.getString("category") ?: ""
-            val locationId = backStackEntry?.arguments?.getInt("locationId") ?: 0
-            LocationDetailScreen(
-                navController = navController, // Pass the NavController
-                category = category,
-                locationId = locationId
-            )
-        }
-    }
-}
-
-@Composable
-fun HomeScreen(navController: NavController) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Welcome to Boston!")
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { navController.navigate(Screen.Categories.route) }) {
-            Text("Explore Categories")
-        }
-    }
-}
-
-@Composable
-fun CategoriesScreen(navController: NavController) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Categories")
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { navController.navigate(Screen.LocationsList.createRoute("Museums")) }) {
-            Text("Museums")
-        }
-        Spacer(Modifier.height(8.dp))
-        Button(onClick = { navController.navigate(Screen.LocationsList.createRoute("Parks")) }) {
-            Text("Parks")
-        }
-    }
-}
-
-@Composable
-fun LocationsListScreen(navController: NavController, category: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Category: $category")
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { navController.navigate(Screen.LocationDetail.createRoute(category, 101)) }) {
-            Text("View Location Details (ID: 101)")
-        }
-    }
-}
-
-@Composable
-fun LocationDetailScreen(
-    navController: NavController, // Receive the NavController
-    category: String,
-    locationId: Int
-) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Details for $category")
-        Spacer(Modifier.height(8.dp))
-        Text("Location ID: $locationId")
-        Spacer(Modifier.height(16.dp))
-
-        // This button clears the entire back stack and returns to the Home screen.
-        Button(onClick = {
-            navController.navigate(Screen.Home.route) {
-                // This is the key action. It pops all screens up to the Home destination.
-                popUpTo(Screen.Home.route) {
-                    inclusive = true // This also removes the Home screen itself, creating a fresh start.
-                }
-            }
-        }) {
-            Text("Go Home")
-        }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    IndivAssignment5Q3Theme {
-        BostonApp()
     }
 }
